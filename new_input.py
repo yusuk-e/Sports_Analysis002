@@ -28,7 +28,7 @@ player_dic = {}
 #--data--
 elem = namedtuple("elem", "t, re_t, team, p, a, x, y, s")
 #絶対時刻, ハーフ相対時間，チームID，アクションID, x座標，y座標, success
-D = defaultdict(lambda: defaultdict(int))#アクションID付きボール位置データ D[counter]
+D = defaultdict(lambda: defaultdict(int))#選手位置データ D[seq_id][team_id]
 N = 0
 Seq_Team1_of = defaultdict(int)
 Seq_Team2_of = defaultdict(int)
@@ -186,39 +186,37 @@ def input():
 
         if time_fix != t:
             if flag == 1:
-
-
-うまくいってない
-                if len(event) == 10:#コート上にいる人数が5,7,9,11人とか有り．とりあえず削除．
+                if len(event) == 10:
+                    #コート上にいる人数が5,7,9,11人とか有り．とりあえず削除．
+                    flag2 = 0
                     for team_id in team_dic.itervalues():
                         ids = np.where(event[:,2] == team_id)[0]
-                        #if len(ids) != 4 and len(ids) !=5:
-                        #print len(ids)
-                        #if len(ids) == 0:
-                        #    print 'err' #片方のチームのデータがないとき有り
-                        #pdb.set_trace()
-                        D[counter][team_id] = event[ids,:]
-                    #if np.shape(D[counter])[0] != 10:
-                    #    print 'error'
-                    #    pdb.set_trace() #10人いないとき有り
-                    counter += 1
+                        if len(ids) == 5:
+                            D[counter][team_id] = event[ids,:]
+                            flag2 = 1
+                    if flag2 == 1:
+                        counter += 1
 
             time_fix = t
-            event = np.array([[t, re_t, team_dic[team], player_dic[team_dic[team]][player], action_dic[action], x, y, s]])
+            event = np.array([[t, re_t, team_dic[team], player_dic[team_dic[team]]\
+                               [player], action_dic[action], x, y, s]])
 
         elif time_fix == t:
-            etemp = np.array([t, re_t, team_dic[team], player_dic[team_dic[team]][player], action_dic[action], x, y, s])
+            etemp = np.array([t, re_t, team_dic[team], player_dic[team_dic[team]]\
+                              [player], action_dic[action], x, y, s])
             event = np.vstack([event,etemp])
             flag = 1
 
     fin.close()
-    N = counter - 1
+    N = counter
 
     for i in range(len(Stoppage)):#Stoppageもディクショナリの番号に直す
         Stoppage[i] = action_dic[Stoppage[i]]
+
     Make_re_t()#各ピリオド開始からの相対時間を生成
     Reverse_Seq()#後半の攻撃を反転
     print "time:%f" % (time()-t0)
+
 
 def Make_re_t():
 #--各ピリオド開始からの相対時間を生成--
@@ -241,8 +239,6 @@ def Make_re_t():
         for team_id in team_dic.values():
             x_team = x[team_id]
             x_team_size = np.shape(x_team)[0]
-            if x_team_size == 7:
-                pdb.set_trace()
             t = x_team[0][0]
             for i in range(x_team_size):
                 if period2_start < t and t < period2_end:
@@ -251,20 +247,24 @@ def Make_re_t():
                     x_team[i][1] = t - period3_start
                 elif period4_start < t and t < period4_end:
                     x_team[i][1] = t - period4_start
-            D[n][team_id] = x
+            D[n][team_id] = x_team
             #注意：4ピリオド終了後にアクションがある
+
 
 def Reverse_Seq():
 #--後半反転--
     for n in range(N):
         x = D[n]
-        x_size = np.shape(x)[0]
-        t = x[0][0]
-        if t > period3_start:
-            for i in range(x_size):
-                x[i][5] = xmax - x[i][5]
-                x[i][6] = ymax - x[i][6]
-            D[n] = x
+        for team_id in team_dic.values():
+            x_team = x[team_id]
+            x_team_size = np.shape(x_team)[0]
+            t = x_team[0][0]
+            if t > period3_start:
+                for i in range(x_team_size):
+                    x_team[i][5] = xmax - x_team[i][5]
+                    x_team[i][6] = ymax - x_team[i][6]
+            D[n][team_id] = x_team
+
 
 def Seq_Team_of():
 #--offense ボール軌跡--
