@@ -266,14 +266,16 @@ def Reverse_Seq():
             D[n][team_id] = x_team
 
 
-def Seq_Team_of():
-#--offense ボール軌跡--
+def make_sequence()
+#--攻撃機会毎のデータ構造を作成--
     global N_Team1_of, N_Team2_of
     t0 = time()
 
     n = 0
     while n < N:
         x = D[n]
+        
+
         pdb.set_trace()
 
 
@@ -364,7 +366,7 @@ def Seq_Team_of():
 input()
 #データ読み込み
 
-Seq_Team_of()
-#オフェンス時のボール軌跡データ作成
+make_sequence()
+#攻撃機会毎のデータ構造を作成
 
 pdb.set_trace()
