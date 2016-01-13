@@ -36,7 +36,8 @@ N_Team1_of = -1
 N_Team2_of = -1
 
 #--others--
-Stoppage = [5, 7, 11, 12]
+Stoppage = [5]
+#5:ファール
 
 xmax = -10 ** 14
 xmin = 10 ** 14
@@ -191,10 +192,10 @@ def input():
                     flag2 = 0
                     for team_id in team_dic.itervalues():
                         ids = np.where(event[:,2] == team_id)[0]
-                        if len(ids) == 5:
-                            D[counter][team_id] = event[ids,:]
+                        D[counter][team_id] = event[ids,:]
+                        if len(ids) != 5:#何らかの理由で5vs5になっていないときはスキップ
                             flag2 = 1
-                    if flag2 == 1:
+                    if flag2 == 0:
                         counter += 1
 
             time_fix = t
@@ -266,7 +267,7 @@ def Reverse_Seq():
             D[n][team_id] = x_team
 
 
-def make_sequence()
+def make_sequence():
 #--攻撃機会毎のデータ構造を作成--
     global N_Team1_of, N_Team2_of
     t0 = time()
@@ -274,10 +275,23 @@ def make_sequence()
     n = 0
     while n < N:
         x = D[n]
-        
+        tmp = np.vstack([x[0],x[1]])
+        action_line = map(int, tmp[:,4].tolist())
 
-        pdb.set_trace()
+        #セットプレイで切る
+        if action_dic[11] in action_line:
+            pdb.set_trace()
+            print action_line
+        elif action_dic[12] in action_line:
+            pdb.set_trace()
+            print action_line
 
+        ids = np.where(action_line != 1)[0]
+        n += 1
+
+
+    print "ok"
+    pdb.set_trace()        
 
 
 
@@ -365,6 +379,7 @@ def make_sequence()
 #--main--
 input()
 #データ読み込み
+pdb.set_trace()
 
 make_sequence()
 #攻撃機会毎のデータ構造を作成
