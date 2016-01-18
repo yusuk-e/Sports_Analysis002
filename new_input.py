@@ -30,14 +30,16 @@ elem = namedtuple("elem", "t, re_t, team, p, a, x, y, s")
 #絶対時刻, ハーフ相対時間，チームID，アクションID, x座標，y座標, success
 D = defaultdict(lambda: defaultdict(int))#選手位置データ D[seq_id][team_id]
 N = 0
-Seq_Team1_of = defaultdict(int)
-Seq_Team2_of = defaultdict(int)
-N_Team1_of = -1
-N_Team2_of = -1
+
+Seq = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+#選手位置データ Seq[Seq_id][team_id][event_id]
+N_Seq = 0
 
 #--others--
-Stoppage = [5]
-#5:ファール
+Stoppage = [5,11,12]
+#5:ファール, サイドプレイ, エンドプレイ
+Turnover = [0,1,2,3]#ボール保持チームの判別に使用
+#0:2P, 1:3P, 2:ドリブル, 3:パス
 
 xmax = -10 ** 14
 xmin = 10 ** 14
@@ -140,6 +142,8 @@ def input():
     time_fix = -1
     for row in fin:
         temp = row.rstrip("\r\n").split(",")
+        if " " in temp:
+            print "err"
 
         A = temp[0].split(".")
         B = A[0].split(":")
@@ -214,6 +218,9 @@ def input():
     for i in range(len(Stoppage)):#Stoppageもディクショナリの番号に直す
         Stoppage[i] = action_dic[Stoppage[i]]
 
+    for i in range(len(Identifier)):#Identifierもディクショナリの番号に直す
+        Identifier[i] = action_dic[Identifier[i]]
+
     Make_re_t()#各ピリオド開始からの相対時間を生成
     Reverse_Seq()#後半の攻撃を反転
     print "time:%f" % (time()-t0)
@@ -271,22 +278,59 @@ def make_sequence():
 #--攻撃機会毎のデータ構造を作成--
     global N_Team1_of, N_Team2_of
     t0 = time()
+    seq_id = -1
+    event_id = 0
+    prev_possesion_team = -1
+    
 
     n = 0
     while n < N:
         x = D[n]
         tmp = np.vstack([x[0],x[1]])
-        action_line = map(int, tmp[:,4].tolist())
+        action_line = tmp[:,4]
+        action_line_list = map(int, action_line.tolist())
+
+
+        #--Identifing Possesion Team--
+        action_posi = np.where(action_line != action_dic[14])[0]#14:移動
+        possesion_event_posi = -1
+        flag =  0
+        for i in range(len(action_posi)):
+            action_id = action_line_list[action_posi[i]]
+            if action_id in Turnover:
+                flag = 1
+                possesion_event_posi = action_posi[i]
+            elif action_id in Stoppage:
+                flag = 2
+                possesion_event_posi = action_posi[i]
+
+
+        if possesion_event_posi == -1:
+            print "err"
+            print action_line_list
+
+        possesion_team = int(tmp[possesion_event_posi][2])
+        #-------------
+
+
+        if prev_possesion_team != possesion_team:
+            seq_id += 1
+            event_id = 0
+
+        for team_id in team_dic.itervalues():
+            Seq[seq_id][team_id][event_id] = x[team_id]
+            
+        event_id += 1
+        prev_possesion_team = possesion_team
+
 
         #セットプレイで切る
-        if action_dic[11] in action_line:
-            pdb.set_trace()
-            print action_line
-        elif action_dic[12] in action_line:
-            pdb.set_trace()
-            print action_line
+        #set_play_flag = 0
+        #if action_dic[11] in action_line_list:#11:サイドプレイ
+        #    set_play_flag = 1
+        #elif action_dic[12] in action_line_list:#12:エンドプレイ
+        #    set_play_flag = 1
 
-        ids = np.where(action_line != 1)[0]
         n += 1
 
 
@@ -379,7 +423,6 @@ def make_sequence():
 #--main--
 input()
 #データ読み込み
-pdb.set_trace()
 
 make_sequence()
 #攻撃機会毎のデータ構造を作成

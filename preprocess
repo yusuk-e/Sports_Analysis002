@@ -11,19 +11,28 @@
 
 awk -F"," -v OFS=, '($8=="8" || $8=="9"){print $6}' 20151015_JPN-AUS.csv >> temp_time.csv
 
-awk -F"," -v OFS=, '($8=="0" || $8=="1" || $8=="2" || $8=="3" || $8=="5" || $8=="7" || $8=="11" || $8=="12" || $8=="14"){print $6,$6,$5,$7,$8,$9,$10,$17}' 20151015_JPN-AUS.csv >> temp_meta.csv
+awk -F"," -v OFS=, '($8=="0" || $8=="1" || $8=="2" || $8=="3" || $8=="5" || $8=="11" || $8=="12" || $8=="14" || $8 =="15"){print $6,$6,$5,$7,$8,$9,$10,$17}' 20151015_JPN-AUS.csv >> temp_meta.csv
+
+awk -F"," -v OFS=, '($1!="" && $2!="" && $3!="" && $4!="" && $5!="" && $6!="" && $7!=""){print}' temp_meta.csv >> temp_meta2.csv
 
 #$8の詳細:
 #0:2Pシュート
 #1:3Pシュート
 #2:ドリブル
 #3:パス
+#4:スティール(remove)
 #5:ファール
-#7:ジャンプボール
+#6:フリースロー(remove)
+#7:ジャンプボール(remove)
+#8:ピリオド開始(remove)
+#9:ピリオド終了(remove)
+#10:タイムアウト(remove)
 #11:サイドプレイ
 #12:エンドプレイ
+#13:メンバーチェンジ(remove)
 #14:移動
+#15:スクリーン
 
-cat temp_time.csv temp_meta.csv > processed_metadata.csv
+cat temp_time.csv temp_meta2.csv > processed_metadata.csv
 
 rm temp*
