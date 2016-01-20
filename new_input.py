@@ -316,12 +316,11 @@ def make_sequence():
             if prev_possesion_team != possesion_team:
                 seq_id += 1
                 event_id = 0
+                Offense_team_ids.append(possesion_team)
+                Diffense_team_ids.append((1 - possesion_team))
 
             for team_id in team_dic.itervalues():
                 Seq[seq_id][team_id][event_id] = x[team_id]
-
-            Offense_team_ids.append(possesion_team)
-            Diffense_team_ids.append((1 - possesion_team))
 
             event_id += 1
             prev_possesion_team = possesion_team
@@ -337,13 +336,12 @@ def make_sequence():
 
                 seq_id += 1
                 event_id = 0
+                Offense_team_ids.append(possesion_team)
+                Diffense_team_ids.append((1 - possesion_team))
 
                 for team_id in team_dic.itervalues():
                     Seq[seq_id][team_id][event_id] = x[team_id]
 
-                Offense_team_ids.append(possesion_team)
-                Diffense_team_ids.append((1 - possesion_team))
-            
                 event_id += 1
                 prev_possesion_team = possesion_team
 
