@@ -34,12 +34,15 @@ N = 0
 Seq = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 #選手位置データ Seq[Seq_id][team_id][event_id]
 N_Seq = 0
+Offense_team_ids = []
+Diffense_team_ids = []
 
 #--others--
 Stoppage = [5,11,12]
-#5:ファール, サイドプレイ, エンドプレイ
+#5:ファール, 11:サイドプレイ, 12:エンドプレイ
 Turnover = [0,1,2,3]#ボール保持チームの判別に使用
 #0:2P, 1:3P, 2:ドリブル, 3:パス
+#残りは14:移動, 15:スクリーン
 
 xmax = -10 ** 14
 xmin = 10 ** 14
@@ -218,8 +221,8 @@ def input():
     for i in range(len(Stoppage)):#Stoppageもディクショナリの番号に直す
         Stoppage[i] = action_dic[Stoppage[i]]
 
-    for i in range(len(Identifier)):#Identifierもディクショナリの番号に直す
-        Identifier[i] = action_dic[Identifier[i]]
+    for i in range(len(Turnover)):#Turnoverもディクショナリの番号に直す
+        Turnover[i] = action_dic[Turnover[i]]
 
     Make_re_t()#各ピリオド開始からの相対時間を生成
     Reverse_Seq()#後半の攻撃を反転
@@ -276,24 +279,19 @@ def Reverse_Seq():
 
 def make_sequence():
 #--攻撃機会毎のデータ構造を作成--
-    global N_Team1_of, N_Team2_of
+    global N_Seq
     t0 = time()
     seq_id = -1
     event_id = 0
     prev_possesion_team = -1
     
-
     n = 0
     while n < N:
         x = D[n]
         tmp = np.vstack([x[0],x[1]])
         action_line = tmp[:,4]
         action_line_list = map(int, action_line.tolist())
-
-
-        #--Identifing Possesion Team--
         action_posi = np.where(action_line != action_dic[14])[0]#14:移動
-        possesion_event_posi = -1
         flag =  0
         for i in range(len(action_posi)):
             action_id = action_line_list[action_posi[i]]
@@ -303,120 +301,101 @@ def make_sequence():
             elif action_id in Stoppage:
                 flag = 2
                 possesion_event_posi = action_posi[i]
+            #else:
+            #    action_len = len(action_posi)
+            #    if action_len == 1:
+            #        print action_line
+            #        #15:スクリーンは他のアクションとセット．単体では記録されていない．
+
+        if flag == 0:
+            print "error"
+
+        elif flag == 1:#Turnover {0:2P, 1:3P, 2:ドリブル, 3:パス}
+            possesion_team = int(tmp[possesion_event_posi][2])            
+
+            if prev_possesion_team != possesion_team:
+                seq_id += 1
+                event_id = 0
+
+            for team_id in team_dic.itervalues():
+                Seq[seq_id][team_id][event_id] = x[team_id]
+
+            Offense_team_ids.append(possesion_team)
+            Diffense_team_ids.append((1 - possesion_team))
+
+            event_id += 1
+            prev_possesion_team = possesion_team
 
 
-        if possesion_event_posi == -1:
-            print "err"
-            print action_line_list
+        elif flag == 2:#Stoppage {5:ファール, 11:サイドプレイ, 12:エンドプレイ}           
+            if action_id == action_dic[5]:#5:ファール
+                seq_id += 1
+                event_id = 0
 
-        possesion_team = int(tmp[possesion_event_posi][2])
-        #-------------
+            else:#11:サイドプレイ, 12:エンドプレイ
+                possesion_team = int(tmp[possesion_event_posi][2])            
 
+                seq_id += 1
+                event_id = 0
 
-        if prev_possesion_team != possesion_team:
-            seq_id += 1
-            event_id = 0
+                for team_id in team_dic.itervalues():
+                    Seq[seq_id][team_id][event_id] = x[team_id]
 
-        for team_id in team_dic.itervalues():
-            Seq[seq_id][team_id][event_id] = x[team_id]
+                Offense_team_ids.append(possesion_team)
+                Diffense_team_ids.append((1 - possesion_team))
             
-        event_id += 1
-        prev_possesion_team = possesion_team
-
-
-        #セットプレイで切る
-        #set_play_flag = 0
-        #if action_dic[11] in action_line_list:#11:サイドプレイ
-        #    set_play_flag = 1
-        #elif action_dic[12] in action_line_list:#12:エンドプレイ
-        #    set_play_flag = 1
+                event_id += 1
+                prev_possesion_team = possesion_team
 
         n += 1
 
+    N_Seq = seq_id + 1
+
+
+def visualize_sequence():
+
+    seq_id = 0
+    while seq_id < N_Seq:
+        for team_id in team_dic.itervalues():
+            Sub_Seq = Seq[seq_id][team_id]
+            Leng_Sub_Seq = len(Sub_Seq)
+            #if Leng_Sub_Seq == 1:
+            #    print Sub_Seq#一回しかアクションがない攻撃は存在しない
+
+            X = defaultdict(int)
+            Y = defaultdict(int)
+            for i in range(Leng_Sub_Seq):
+                E = Sub_Seq[i]
+                player_ids = E[:,3]
+                x = E[:,5]
+                y = E[:,6]
+                for j in range(len(player_ids)):
+                    if i == 0:
+                        player_id = int(player_ids[j])
+                        X[player_id] = np.array(x[j])
+                        Y[player_id] = np.array(y[j])
+                    else:
+                        player_id = int(player_ids[j])
+                        X[player_id] = np.hstack([X[player_id], x[j]])
+                        Y[player_id] = np.hstack([Y[player_id], y[j]])
+
+            fig = plt.figure()
+            for j in range(len(player_ids)):
+                player_id = int(player_ids[j])
+                x = X[player_id]
+                y = Y[player_id]
+                plt.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1], width=0.003, \
+                        scale_units='xy', angles='xy', scale=1, color='darkcyan')
+            plt.axis([0, 600, 0, 330])
+            
+            pdb.set_trace()
+            plt.close()            
+
+        seq_id += 1
+
 
     print "ok"
-    pdb.set_trace()        
-
-
-
-    pre_team = 0
-    flag = 0
-
-    while n < N:
-        team = D[n].team
-        action = D[n].a
-
-        if action in Stoppage:
-            flag = 1
-            n += 1
-
-        else:
-            if pre_team == team:
-                if team == 0:
-                    if flag == 1:
-                        N_Team1_of += 1
-                        flag = 0
-
-                    x = D[n]
-                    if np.size(Seq_Team1_of[N_Team1_of]) == 1: 
-                        #Seq_Team1_ofにまだデータがない場合
-                        f = np.array([x.t,x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team1_of[N_Team1_of] = f
-                    else:
-                        f = np.array([x.t, x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team1_of[N_Team1_of] = np.vstack([Seq_Team1_of[N_Team1_of],f])
-
-                    n += 1
-                    pre_team = team
-
-                elif team == 1:
-                    if flag == 1:
-                        N_Team2_of += 1
-                        flag = 0
-
-                    x = D[n]
-                    if np.size(Seq_Team2_of[N_Team2_of]) == 1: 
-                        #Seq_Team2_ofにまだデータがない場合
-                        f = np.array([x.t,x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team2_of[N_Team2_of] = f
-                    else:
-                        f = np.array([x.t, x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team2_of[N_Team2_of] = np.vstack([Seq_Team2_of[N_Team2_of],f])
-
-                    n += 1
-                    pre_team = team
-
-            else:
-                if team == 0:
-                    N_Team1_of += 1
-                    x = D[n]
-                    if np.size(Seq_Team1_of[N_Team1_of]) == 1: 
-                        #Seq_Team1_ofにまだデータがない場合
-                        f = np.array([x.t,x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team1_of[N_Team1_of] = f
-                    else:
-                        f = np.array([x.t, x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team1_of[N_Team1_of] = np.vstack([Seq_Team1_of[N_Team1_of],f])
-
-                    n += 1
-                    pre_team = team
-
-                elif team == 1:
-                    N_Team2_of += 1
-                    x = D[n]
-                    if np.size(Seq_Team2_of[N_Team2_of]) == 1: 
-                        #Seq_Team2_ofにまだデータがない場合
-                        f = np.array([x.t,x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team2_of[N_Team2_of] = f
-                    else:
-                        f = np.array([x.t, x.re_t, x.team, x.p, x.a, x.x, x.y, x.s])
-                        Seq_Team2_of[N_Team2_of] = np.vstack([Seq_Team2_of[N_Team2_of],f])
-
-                    n += 1
-                    pre_team = team
-
-    N_Team1_of = len(Seq_Team1_of)
-    N_Team2_of = len(Seq_Team2_of)
+    pdb.set_trace()   
 
 
 
@@ -426,5 +405,8 @@ input()
 
 make_sequence()
 #攻撃機会毎のデータ構造を作成
+
+visualize_sequence()
+#攻撃機会毎のデータを可視化
 
 pdb.set_trace()
