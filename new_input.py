@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import resource
 import codecs
 import random
+from PIL import Image
 from collections import defaultdict
 from collections import namedtuple
 from sklearn.cluster import KMeans
@@ -352,13 +353,27 @@ def make_sequence():
 
 def visualize_sequence():
 
+    im = Image.open('court.png')
+    im = np.array(im)
+    team_dic_inv = {v:k for k, v in team_dic.items()}
+
     seq_id = 0
     while seq_id < N_Seq:
+        fig = plt.figure(figsize=(16,16))
         for team_id in team_dic.itervalues():
             Sub_Seq = Seq[seq_id][team_id]
             Leng_Sub_Seq = len(Sub_Seq)
-            #if Leng_Sub_Seq == 1:
+            if seq_id == 9:
+                pdb.set_trace()
+
+            if Leng_Sub_Seq == 1:
+                pdb.set_trace()
             #    print Sub_Seq#一回しかアクションがない攻撃は存在しない
+
+            ある！！
+
+
+
 
             X = defaultdict(int)
             Y = defaultdict(int)
@@ -377,17 +392,41 @@ def visualize_sequence():
                         X[player_id] = np.hstack([X[player_id], x[j]])
                         Y[player_id] = np.hstack([Y[player_id], y[j]])
 
-            fig = plt.figure()
+            if team_id == Offense_team_ids[seq_id]:
+                OD = 'Offense'
+                OD_color = 'red'
+            else:
+                OD = 'Diffense'
+                OD_color = 'blue'
+            
+            if team_dic_inv[team_id] == 8:
+                team_name = 'JPN'
+            else:
+                team_name = 'AUS'
+
+            plt.subplot(int(str(21)+str(team_id + 1)))
+            #plt.title(team_name+'  '+OD, size=30, loc='left')
+            plt.title(OD, color=OD_color, size=35, loc='left')
+            plt.ylabel(team_name,size=45)
+            plt.tick_params(labelbottom='off',labelleft='off')
+            plt.imshow(im)
             for j in range(len(player_ids)):
+                if seq_id == 9:
+                    pdb.set_trace()
                 player_id = int(player_ids[j])
                 x = X[player_id]
                 y = Y[player_id]
-                plt.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1], width=0.003, \
-                        scale_units='xy', angles='xy', scale=1, color='darkcyan')
+
+                plt.quiver(x[:-1], y[:-1], x[1:]-x[:-1], y[1:]-y[:-1], width=0.002, \
+                           headwidth=5, headlength=7, headaxislength=7, scale_units='xy',\
+                           angles='xy', scale=1, color='grey')
+                           #angles='xy', scale=1, color='darkcyan')
+                           #quive(x,y,u,v) (x,y):始点 (u,v):方向ベクトル
+                plt.scatter(x,y,s = 40, color=OD_color,alpha=0.5)
             plt.axis([0, 600, 0, 330])
             
-            pdb.set_trace()
-            plt.close()            
+        plt.savefig('Sequence/Sequence_'+str(seq_id)+'.png', transparent=True)
+        plt.close()            
 
         seq_id += 1
 
