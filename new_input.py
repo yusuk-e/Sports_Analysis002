@@ -313,12 +313,13 @@ def make_sequence():
 
         elif flag == 1:#Turnover {0:2P, 1:3P, 2:ドリブル, 3:パス}
             possesion_team = int(tmp[possesion_event_posi][2])            
-
+            
             if prev_possesion_team != possesion_team:
-                seq_id += 1
+                if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+                    seq_id += 1
+                    Offense_team_ids.append(possesion_team)
+                    Diffense_team_ids.append((1 - possesion_team))
                 event_id = 0
-                Offense_team_ids.append(possesion_team)
-                Diffense_team_ids.append((1 - possesion_team))
 
             for team_id in team_dic.itervalues():
                 Seq[seq_id][team_id][event_id] = x[team_id]
@@ -328,17 +329,22 @@ def make_sequence():
 
 
         elif flag == 2:#Stoppage {5:ファール, 11:サイドプレイ, 12:エンドプレイ}           
-            if action_id == action_dic[5]:#5:ファール
-                seq_id += 1
-                event_id = 0
+            #if action_id == action_dic[5]:#5:ファール
+                #if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+                #    seq_id += 1
+                #event_id = 0
+                #prev_possesion_team = -1
+            #ファールのあと，必ずサイドorエンドプレイになるなら不必要
 
-            else:#11:サイドプレイ, 12:エンドプレイ
+            #else:#11:サイドプレイ, 12:エンドプレイ
+            if action_id == action_dic[11] or action_id == action_dic[12]:
                 possesion_team = int(tmp[possesion_event_posi][2])            
 
-                seq_id += 1
+                if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+                    seq_id += 1
+                    Offense_team_ids.append(possesion_team)
+                    Diffense_team_ids.append((1 - possesion_team))
                 event_id = 0
-                Offense_team_ids.append(possesion_team)
-                Diffense_team_ids.append((1 - possesion_team))
 
                 for team_id in team_dic.itervalues():
                     Seq[seq_id][team_id][event_id] = x[team_id]
@@ -347,8 +353,8 @@ def make_sequence():
                 prev_possesion_team = possesion_team
 
         n += 1
-
-    N_Seq = seq_id + 1
+    
+    N_Seq = seq_id
 
 
 def visualize_sequence():
@@ -364,14 +370,9 @@ def visualize_sequence():
         Sub_Seq = Seq[seq_id][0]
         Leng_Sub_Seq = len(Sub_Seq)
         if Leng_Sub_Seq == 1:
-
-            == 0がある！！
-
-
             m_seq_id += 1
+            pdb.set_trace()
         else:
-            if seq_id == 19:
-                pdb.set_trace()
             fig = plt.figure(figsize=(16,16))
             for team_id in team_dic.itervalues():
                 Sub_Seq = Seq[seq_id][team_id]
