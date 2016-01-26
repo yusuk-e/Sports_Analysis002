@@ -39,8 +39,8 @@ Offense_team_ids = []
 Diffense_team_ids = []
 
 #--others--
-Stoppage = [5,11,12]
-#5:ファール, 6:フリースロー, 7:ジャンプボール, 8:ピリオド開始, 9:ピリオド終了, 10:タイムアウト, 13:メンバーチェンジ, 11:サイドプレイ, 12:エンドプレイ
+Stoppage = [11,12]
+#11:サイドプレイ, 12:エンドプレイ
 Turnover = [0,1,2,3]#ボール保持チームの判別に使用
 #0:2P, 1:3P, 2:ドリブル, 3:パス
 #残りは14:移動, 15:スクリーン
@@ -70,6 +70,8 @@ period3_end_re_t = 0
 period4_start_re_t = 0
 period4_end_re_t = 0
 
+Time_out = []
+Menber_change = []
 #-----------------
 
 
@@ -77,67 +79,15 @@ def input():
 #--Input--
 
     global xmax, xmin, ymax, ymin
-    global start_time, end_time
-    global period1_start, period1_end
-    global period2_start, period2_end
-    global period3_start, period3_end
-    global period4_start, period4_end
-
     global N
 
     t0 = time()
 
+    input_time()#ピリオド開始・終了，タイムアウト，メンバーチェンジの時刻読み込み
+
     counter = 0
     filename = "processed_metadata.csv"
     fin = open(filename)
-
-    tmp = fin.readline().rstrip("\r\n").split(",")
-    A = tmp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period1_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period1_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period2_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period2_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period3_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period3_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period4_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
-
-    temp = fin.readline().rstrip("\r\n").split(",")
-    A = temp[0].split(".")
-    B = A[0].split(":")
-    C = A[1]
-    period4_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
 
     counter = 0
     temp_player0_dic = {}
@@ -146,8 +96,6 @@ def input():
     time_fix = -1
     for row in fin:
         temp = row.rstrip("\r\n").split(",")
-        if " " in temp:
-            print "err"
 
         A = temp[0].split(".")
         B = A[0].split(":")
@@ -164,6 +112,7 @@ def input():
             team_dic[team] = len(team_dic)
 
         player = int(temp[3])
+
         if team_dic[team] == 0:
             if player not in temp_player0_dic:
                 temp_player0_dic[player] = len(temp_player0_dic)
@@ -173,7 +122,7 @@ def input():
                 temp_player1_dic[player] = len(temp_player1_dic)
                 player_dic[1] = temp_player1_dic
         else:
-            print "err"
+            print 'error'
 
         action = int(temp[4])
         if action not in action_dic:
@@ -227,8 +176,100 @@ def input():
 
     Make_re_t()#各ピリオド開始からの相対時間を生成
     Reverse_Seq()#後半の攻撃を反転
+    pdb.set_trace()
     print "time:%f" % (time()-t0)
 
+
+def input_time():
+
+    global period1_start, period1_end
+    global period2_start, period2_end
+    global period3_start, period3_end
+    global period4_start, period4_end
+
+    global Time_out, Menber_change
+
+    filename = "period.csv"
+    fin = open(filename)    
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period1_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period1_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period2_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period2_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period3_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period3_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period4_start = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    temp = fin.readline().rstrip("\r\n").split(",")
+    A = temp[0].split(".")
+    B = A[0].split(":")
+    C = A[1]
+    period4_end = int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3
+
+    fin.close()
+
+
+    filename = "time_out.csv"
+    fin = open(filename)    
+    strList = fin.readlines()
+
+    for line in strList:
+        temp = line.rstrip("\r\n").split(",")
+        A = temp[0].split(".")
+        B = A[0].split(":")
+        C = A[1]
+        Time_out.append(int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3)
+
+    fin.close()
+
+
+    filename = "menber_change.csv"
+    fin = open(filename)
+    strList = fin.readlines()
+
+    for line in strList:
+        temp = line.rstrip("\r\n").split(",")
+        A = temp[0].split(".")
+        B = A[0].split(":")
+        C = A[1]
+        Menber_change.append(int(B[0]) * 3600 + int(B[1]) * 60 + int(B[2]) + int(C) * 10 ** -3)
+
+    fin.close()
+        
 
 def Make_re_t():
 #--各ピリオド開始からの相対時間を生成--
@@ -328,29 +369,20 @@ def make_sequence():
             prev_possesion_team = possesion_team
 
 
-        elif flag == 2:#Stoppage {5:ファール, 11:サイドプレイ, 12:エンドプレイ}           
-            #if action_id == action_dic[5]:#5:ファール
-                #if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
-                #    seq_id += 1
-                #event_id = 0
-                #prev_possesion_team = -1
-            #ファールのあと，必ずサイドorエンドプレイになるなら不必要
+        elif flag == 2:#Stoppage {11:サイドプレイ, 12:エンドプレイ}           
+            possesion_team = int(tmp[possesion_event_posi][2])            
 
-            #else:#11:サイドプレイ, 12:エンドプレイ
-            if action_id == action_dic[11] or action_id == action_dic[12]:
-                possesion_team = int(tmp[possesion_event_posi][2])            
+            if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+                seq_id += 1
+                Offense_team_ids.append(possesion_team)
+                Diffense_team_ids.append((1 - possesion_team))
+            event_id = 0
 
-                if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
-                    seq_id += 1
-                    Offense_team_ids.append(possesion_team)
-                    Diffense_team_ids.append((1 - possesion_team))
-                event_id = 0
+            for team_id in team_dic.itervalues():
+                Seq[seq_id][team_id][event_id] = x[team_id]
 
-                for team_id in team_dic.itervalues():
-                    Seq[seq_id][team_id][event_id] = x[team_id]
-
-                event_id += 1
-                prev_possesion_team = possesion_team
+            event_id += 1
+            prev_possesion_team = possesion_team
 
         n += 1
     
