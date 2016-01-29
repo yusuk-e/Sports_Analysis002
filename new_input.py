@@ -326,7 +326,7 @@ def make_sequence():
     seq_id = -1
     event_id = 0
     prev_possesion_team = -1
-    
+    print N
     n = 0
     while n < N:
         x = D[n]
@@ -349,33 +349,37 @@ def make_sequence():
             #        print action_line
             #        #15:スクリーンは他のアクションとセット．単体では記録されていない．
 
+
         if flag == 0:
             print "error"
 
         elif flag == 1:#Turnover {0:2P, 1:3P, 2:ドリブル, 3:パス}
             possesion_team = int(tmp[possesion_event_posi][2])            
-            
+
             if prev_possesion_team != possesion_team:
                 if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
                     seq_id += 1
-                    Offense_team_ids.append(possesion_team)
-                    Diffense_team_ids.append((1 - possesion_team))
+                    Offense_team_ids.append(prev_possesion_team)
+                    Diffense_team_ids.append((1 - prev_possesion_team))
                 event_id = 0
 
             for team_id in team_dic.itervalues():
                 Seq[seq_id][team_id][event_id] = x[team_id]
 
             event_id += 1
+            #if seq_id == 35:
+            #    pdb.set_trace()
             prev_possesion_team = possesion_team
 
 
         elif flag == 2:#Stoppage {11:サイドプレイ, 12:エンドプレイ}           
             possesion_team = int(tmp[possesion_event_posi][2])            
 
+
             if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
                 seq_id += 1
-                Offense_team_ids.append(possesion_team)
-                Diffense_team_ids.append((1 - possesion_team))
+                Offense_team_ids.append(prev_possesion_team)
+                Diffense_team_ids.append((1 - prev_possesion_team))
             event_id = 0
 
             for team_id in team_dic.itervalues():
@@ -385,7 +389,7 @@ def make_sequence():
             prev_possesion_team = possesion_team
 
         n += 1
-    
+    pdb.set_trace()
     N_Seq = seq_id
 
 
