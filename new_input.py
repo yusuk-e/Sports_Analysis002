@@ -176,7 +176,6 @@ def input():
 
     Make_re_t()#各ピリオド開始からの相対時間を生成
     Reverse_Seq()#後半の攻撃を反転
-    pdb.set_trace()
     print "time:%f" % (time()-t0)
 
 
@@ -312,9 +311,11 @@ def Reverse_Seq():
             x_team = x[team_id]
             x_team_size = np.shape(x_team)[0]
             t = x_team[0][0]
-            if t > period3_start:
+            if t >= period3_start:
                 for i in range(x_team_size):
                     x_team[i][5] = xmax - x_team[i][5]
+            if t < period3_start:
+                for i in range(x_team_size):
                     x_team[i][6] = ymax - x_team[i][6]
             D[n][team_id] = x_team
 
@@ -323,10 +324,10 @@ def make_sequence():
 #--攻撃機会毎のデータ構造を作成--
     global N_Seq
     t0 = time()
-    seq_id = -1
+    seq_id = 0
     event_id = 0
     prev_possesion_team = -1
-    print N
+
     n = 0
     while n < N:
         x = D[n]
@@ -337,18 +338,16 @@ def make_sequence():
         flag =  0
         for i in range(len(action_posi)):
             action_id = action_line_list[action_posi[i]]
+            possesion_event_posi = action_posi[i]
             if action_id in Turnover:
                 flag = 1
-                possesion_event_posi = action_posi[i]
             elif action_id in Stoppage:
                 flag = 2
-                possesion_event_posi = action_posi[i]
             #else:
             #    action_len = len(action_posi)
             #    if action_len == 1:
             #        print action_line
             #        #15:スクリーンは他のアクションとセット．単体では記録されていない．
-
 
         if flag == 0:
             print "error"
@@ -357,7 +356,9 @@ def make_sequence():
             possesion_team = int(tmp[possesion_event_posi][2])            
 
             if prev_possesion_team != possesion_team:
-                if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+                if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1 \
+                   and len(Seq[seq_id][0]) != 2:
+                    #見やすさのため系列数2以下のものを削除
                     seq_id += 1
                     Offense_team_ids.append(prev_possesion_team)
                     Diffense_team_ids.append((1 - prev_possesion_team))
@@ -367,16 +368,15 @@ def make_sequence():
                 Seq[seq_id][team_id][event_id] = x[team_id]
 
             event_id += 1
-            #if seq_id == 35:
-            #    pdb.set_trace()
             prev_possesion_team = possesion_team
 
 
         elif flag == 2:#Stoppage {11:サイドプレイ, 12:エンドプレイ}           
             possesion_team = int(tmp[possesion_event_posi][2])            
 
-
-            if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1:
+            if len(Seq[seq_id][0]) != 0 and len(Seq[seq_id][0]) != 1 \
+               and len(Seq[seq_id][0]) != 2:
+                #見やすさのため系列数2以下のものを削除
                 seq_id += 1
                 Offense_team_ids.append(prev_possesion_team)
                 Diffense_team_ids.append((1 - prev_possesion_team))
@@ -389,7 +389,7 @@ def make_sequence():
             prev_possesion_team = possesion_team
 
         n += 1
-    pdb.set_trace()
+
     N_Seq = seq_id
 
 
@@ -461,11 +461,11 @@ def visualize_sequence():
                     plt.scatter(x,y,s = 40, color=OD_color,alpha=0.5)
                 plt.axis([0, 600, 0, 330])
                     
-            plt.savefig('Sequence/Sequence_'+str(int(seq_id - m_seq_id))+'.png', transparent=True)
+            plt.savefig('Sequence/Sequence_'+str(int(seq_id - m_seq_id))+'.png', \
+                        transparent=True)
             plt.close()            
     
         seq_id += 1
-    
 
     print "ok"
     pdb.set_trace()   
@@ -481,5 +481,6 @@ make_sequence()
 
 visualize_sequence()
 #攻撃機会毎のデータを可視化
+
 
 pdb.set_trace()
