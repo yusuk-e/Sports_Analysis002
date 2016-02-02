@@ -17,6 +17,7 @@ from collections import namedtuple
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from scipy.stats import gaussian_kde
+from sklearn.cluster import MeanShift, estimate_bandwidth
 import commands
 
 #-----variable-----
@@ -37,6 +38,12 @@ Seq = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 N_Seq = 0
 Offense_team_ids = []
 Diffense_team_ids = []
+
+MeanShift_Cluster_no = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+N_Cluster = defaultdict(int)
+
+BoF = defaultdict(int)
+BoF_seq_id = defaultdict(int)
 
 #--others--
 Stoppage = [11,12]
@@ -72,6 +79,9 @@ period4_end_re_t = 0
 
 Time_out = []
 Menber_change = []
+
+K = 5
+C = ['blue', 'red', 'green', 'grey', 'gold']
 #-----------------
 
 
@@ -314,7 +324,7 @@ def Reverse_Seq():
             if t >= period3_start:
                 for i in range(x_team_size):
                     x_team[i][5] = xmax - x_team[i][5]
-            if t < period3_start:
+            if t < period3_start:#データの零点が左上なので注意
                 for i in range(x_team_size):
                     x_team[i][6] = ymax - x_team[i][6]
             D[n][team_id] = x_team
@@ -391,6 +401,97 @@ def make_sequence():
         n += 1
 
     N_Seq = seq_id
+    Quantization()
+
+
+def Quantization():
+
+    #Location---------------------
+    XY = defaultdict(int)
+    Labels = defaultdict(int)
+    seq_id = 0
+    while seq_id < N_Seq:
+        offense_team_id = Offense_team_ids[seq_id]
+        Sub_Seq = Seq[seq_id][offense_team_id]
+        L = len(Sub_Seq)
+        for l in range(L):
+            x = Sub_Seq[l][:,5]
+            y = Sub_Seq[l][:,6]
+            xy = np.vstack([x,y]).T
+            if np.size(XY[offense_team_id]) == 1:
+                XY[offense_team_id] = xy
+            else:
+                XY[offense_team_id] = np.vstack([XY[offense_team_id], xy])
+        seq_id += 1
+
+    fig = plt.figure(figsize=(16,16))
+    im = Image.open('court.png')
+    im = np.array(im)
+    team_dic_inv = {v:k for k, v in team_dic.items()}
+
+    team_id = 0
+    if team_dic_inv[team_id] == 8:
+        team_name = 'JPN'
+    else:
+        team_name = 'AUS'
+    plt.subplot(211)
+    plt.imshow(im)
+    plt.scatter(XY[team_id][:,0], XY[team_id][:,1], s = 40, color='blue', alpha=0.5)
+    plt.axis([0, 600, 0, 330])
+    plt.title(team_name, size=35, loc='left')
+
+    bandwidth = 25
+    #bandwidth = estimate_bandwidth(XY[team_id], quantile=0.2, n_samples=500)
+    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    ms.fit(XY[team_id])
+    labels = ms.labels_
+    Labels[team_id] = labels
+    cluster_centers = ms.cluster_centers_
+    labels_unique = np.unique(labels)
+    n_clusters = len(labels_unique)
+    N_Cluster[team_id] = n_clusters
+    plt.scatter(cluster_centers[:,0], cluster_centers[:,1], s = 200, color='black')
+
+    team_id = 1
+    if team_dic_inv[team_id] == 8:
+        team_name = 'JPN'
+    else:
+        team_name = 'AUS'
+    plt.subplot(212)
+    plt.imshow(im)
+    plt.scatter(XY[team_id][:,0], XY[team_id][:,1], s = 40, color='red', alpha=0.5)
+    plt.axis([0, 600, 0, 330])
+    plt.title(team_name, size=35, loc='left')
+    #bandwidth = estimate_bandwidth(XY[team_id], quantile=0.2, n_samples=500)
+    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    ms.fit(XY[team_id])
+    labels = ms.labels_
+    Labels[team_id] = labels
+    cluster_centers = ms.cluster_centers_
+    labels_unique = np.unique(labels)
+    n_clusters = len(labels_unique)
+    N_Cluster[team_id] = n_clusters
+    plt.scatter(cluster_centers[:,0], cluster_centers[:,1], s = 200, color='black')
+
+    plt.savefig('Location/Location.png')
+    plt.close()
+    #Location---------------------
+
+    seq_id = 0
+    counter = defaultdict(int)
+    counter[0] = 0
+    counter[1] = 0
+    while seq_id < N_Seq:    
+        offense_team_id = Offense_team_ids[seq_id]
+        Sub_Seq = Seq[seq_id][offense_team_id]
+        L = len(Sub_Seq)
+        for l in range(L):        
+            Sub_Labels = Labels[offense_team_id]
+            Cluster_nos = Sub_Labels[counter[offense_team_id]:counter[offense_team_id]+5]
+            MeanShift_Cluster_no[seq_id][offense_team_id][l] = Cluster_nos
+            counter[offense_team_id] += 5
+
+        seq_id += 1
 
 
 def visualize_sequence():
@@ -444,7 +545,6 @@ def visualize_sequence():
                     team_name = 'AUS'
         
                 plt.subplot(int(str(21)+str(team_id + 1)))
-                #plt.title(team_name+'  '+OD, size=30, loc='left')
                 plt.title(OD, color=OD_color, size=35, loc='left')
                 plt.ylabel(team_name,size=45)
                 plt.tick_params(labelbottom='off',labelleft='off')
@@ -467,9 +567,115 @@ def visualize_sequence():
     
         seq_id += 1
 
+
+def make_BoF():
+
+    seq_id = 0
+    while seq_id < N_Seq:
+        offense_team_id = Offense_team_ids[seq_id]
+        N_player = len(player_dic[offense_team_id])
+        M = np.zeros([N_player, N_player])
+        C = np.zeros(N_Cluster[offense_team_id] + 1)
+        Sub_Seq = Seq[seq_id][offense_team_id]
+        Sub_MeanShift_Cluster_no = MeanShift_Cluster_no[seq_id][offense_team_id]
+        L = len(Sub_Seq)
+
+        #pass----------------------
+        for l in range(L - 1):
+            Event = Sub_Seq[l]
+            action_line = Event[:,4]
+            action_posi = (np.where(action_line != action_dic[14])) or \
+                          np.where((action_line != action_dic[15]))#14:移動, 15:スクリーン
+            now_player_id = int(Event[action_posi[0][0]][3])
+
+            Event = Sub_Seq[l+1]
+            action_line = Event[:,4]
+            action_posi = (np.where(action_line != action_dic[14])) or \
+                          np.where((action_line != action_dic[15]))#14:移動, 15:スクリーン
+            next_player_id = int(Event[action_posi[0][0]][3])
+
+            M[now_player_id, next_player_id] += 1
+
+        pass_line = M.reshape((1, N_player * N_player))[0]
+        S_pass_line = np.sum(pass_line)
+        for i in range(len(pass_line)):
+            pass_line[i] = (pass_line[i] - 0.00001) / S_pass_line
+        #---------------------------
+
+        #location-------------------
+        for l in range(L):
+            Clusters = Sub_MeanShift_Cluster_no[l]
+            for c in range(len(Clusters)):
+                Cluster_id = Clusters[c]
+                C[Cluster_id] += 1
+
+        S_C = np.sum(C)
+        for i in range(len(C)):
+            C[i] = (C[i] - 0.00001) / S_C
+        #---------------------------
+
+        line = np.hstack([pass_line, C])
+        
+        if np.size(BoF[offense_team_id]) == 1:
+            BoF[offense_team_id] = line
+            BoF_seq_id[offense_team_id] = seq_id
+        else:
+            BoF[offense_team_id] = np.vstack([BoF[offense_team_id], line])
+            BoF_seq_id[offense_team_id] = np.hstack([BoF_seq_id[offense_team_id], seq_id])
+        
+        seq_id += 1
+
+
+def Clustering():
+    
+    PCA_threshold = 0.8
+
+    for team_id in team_dic.itervalues():
+        BoF_Team = BoF[team_id]
+        
+        dim = np.shape(BoF_Team)[0]
+        threshold_dim = 0
+        for i in range(dim):
+            pca = PCA(n_components = i)
+            pca.fit(BoF_Team)
+            X = pca.transform(BoF_Team)
+            E = pca.explained_variance_ratio_
+            if np.sum(E) > PCA_threshold:
+                thereshold_dim = len(E)
+                print 'Team' + str(team_id)+ 'dim:%d' % thereshold_dim
+                break
+    
+        pca = PCA(n_components = thereshold_dim)
+        pca.fit(BoF_Team)
+        X = pca.transform(BoF_Team)
+    
+        min_score = 10000
+        for i in range(100):
+            model = KMeans(n_clusters=K, init='k-means++', max_iter=300, tol=0.0001).fit(X)
+            if min_score > model.score(X):
+                min_score = model.score(X)
+                labels = model.labels_
+        print min_score
+    
+        pca = PCA(n_components = 2)
+        pca.fit(BoF_Team)
+        X = pca.transform(BoF_Team)
+        for k in range(K):
+            labels_ind = np.where(labels == k)[0]
+            plt.scatter(X[labels_ind,0], X[labels_ind,1], color=C[k])
+        plt.legend(['C0','C1','C2','C3','C4'], loc=4)
+    
+        plt.title('Team' + str(team_id) + '1_PCA_kmeans')
+        plt.savefig('Seq_Team' + str(team_id)+ '/Team' + str(team_id) + '_PCA_kmeans.png')
+        plt.show()
+        plt.close()
+        np.savetxt('Seq_Team' + str(team_id) + '/labels_Team' + str(team_id) + '.csv', \
+                   labels, delimiter=',')
+    
+
+
     print "ok"
     pdb.set_trace()   
-
 
 
 #--main--
@@ -479,8 +685,13 @@ input()
 make_sequence()
 #攻撃機会毎のデータ構造を作成
 
-visualize_sequence()
+#visualize_sequence()
 #攻撃機会毎のデータを可視化
 
+make_BoF()
+#パス系列と量子化された位置情報を含むBag-of-Feature作成
+
+Clustering()
+#BoFを入力にして攻撃パターンをクラスタリング
 
 pdb.set_trace()
