@@ -673,6 +673,296 @@ def Clustering():
                    labels, delimiter=',')
     
 
+def Visualize_tactical_pattern():
+#--kmeansで出力されたラベルに基づいて攻撃パターンを色塗り--
+
+    x_period1 = np.arange(int(period1_end_re_t) + 1)
+    y0_period1 = np.zeros(int(period1_end_re_t) + 1)
+
+    x_period2 = np.arange(int(period2_end_re_t) + 1)
+    y0_period2 = np.zeros(int(period2_end_re_t) + 1)
+
+    x_period3 = np.arange(int(period3_end_re_t) + 1)
+    y0_period3 = np.zeros(int(period3_end_re_t) + 1)
+
+    x_period4 = np.arange(int(period4_end_re_t) + 1)
+    y0_period4 = np.zeros(int(period4_end_re_t) + 1)
+
+
+    for team_id in team_dic.itervalues():
+
+        fig = plt.figure(figsize=(16,4))
+        plt.subplots_adjust(hspace=1.5)
+
+        seq_id_set = BoF_seq_id[team_id]
+        N_of = len(seq_id_set)
+        labels = np.loadtxt('Seq_Team' + str(team_id) + '/labels_Team' + str(team_id) + \
+                            '.csv', delimiter=',')
+        
+        for k in range(K):
+            Y_period1_of = np.copy(y0_period1)
+            Y_period2_of = np.copy(y0_period2)
+            Y_period3_of = np.copy(y0_period3)
+            Y_period4_of = np.copy(y0_period4)
+
+            for i in range(N_of):
+                if labels[i] == k:
+                    seq_id = seq_id_set[i]
+                    S = Seq[seq_id][team_id]
+                    start_t = int(S[0][0,0])
+                    start_re_t = int(S[0][0,1])
+                    end_re_t = int(S[len(S) - 1][0,1])
+                    period = int(end_re_t - start_re_t)
+
+                    if start_t < period1_end:
+                        for j in range(period):
+                            Y_period1_of[start_re_t + j] = 1.0
+                    elif period2_start < start_t and start_t < period2_end:
+                        for j in range(period):
+                            Y_period2_of[start_re_t + j] = 1.0
+                    elif period3_start < start_t and start_t < period3_end:
+                        for j in range(period):
+                            Y_period3_of[start_re_t + j] = 1.0
+                    elif period4_start < start_t and start_t < period4_end:
+                        for j in range(period):
+                            Y_period4_of[start_re_t + j] = 1.0
+                    
+            plt.subplot(4, 1, 1)        
+            plt.fill_between(x_period1, y0_period1, Y_period1_of, edgecolor = C[k], facecolor = C[k])
+
+            plt.subplot(4, 1, 2)
+            plt.fill_between(x_period2, y0_period2, Y_period2_of, edgecolor = C[k], facecolor = C[k])
+
+            plt.subplot(4, 1, 3)
+            plt.fill_between(x_period3, y0_period3, Y_period3_of, edgecolor = C[k], facecolor = C[k])
+
+            plt.subplot(4, 1, 4)
+            plt.fill_between(x_period4, y0_period4, Y_period4_of, edgecolor = C[k], facecolor = C[k])
+
+
+        plt.subplot(4, 1, 1)
+        plt.axis([period1_start_re_t, period1_end_re_t, 0, 1])
+        plt.yticks([])
+        plt.title('Team0_period1_offense')
+
+        plt.subplot(4, 1, 2)
+        plt.axis([period2_start_re_t, period2_end_re_t, 0, 1])
+        plt.yticks([])
+        plt.title('Team0_period2_offense')
+
+        plt.subplot(4, 1, 3)
+        plt.axis([period3_start_re_t, period3_end_re_t, 0, 1])
+        plt.yticks([])
+        plt.title('Team0_period3_offense')
+
+        plt.subplot(4, 1, 4)
+        plt.axis([period4_start_re_t, period4_end_re_t, 0, 1])
+        plt.yticks([])
+        plt.title('Team0_period4_offense')
+        
+
+
+        pdb.set_trace()
+    
+
+
+    for k in range(K):
+        Y_period1_Team1_of = np.copy(y0_period1)
+        Y_period2_Team1_of = np.copy(y0_period2)
+        Y_period3_Team1_of = np.copy(y0_period3)
+        Y_period4_Team1_of = np.copy(y0_period4)
+
+        for i in range(N_Team1_of):
+            if labels_Team1[i] == k:
+                S = Seq_Team1_of[i]
+                start_t = S[0,0]
+                start_re_t = S[0,1]
+                end_re_t = S[len(S) - 1,1]
+                period = int(end_re_t - start_re_t)
+
+                if start_t < period1_end:
+                    for j in range(period):
+                        Y_period1_Team1_of[start_re_t + j] = 1.0
+                elif period2_start < start_t and start_t < period2_end:
+                    for j in range(period):
+                        Y_period2_Team1_of[start_re_t + j] = 1.0
+                elif period3_start < start_t and start_t < period3_end:
+                    for j in range(period):
+                        Y_period3_Team1_of[start_re_t + j] = 1.0
+                elif period4_start < start_t and start_t < period4_end:
+                    for j in range(period):
+                        Y_period4_Team1_of[start_re_t + j] = 1.0
+
+        plt.subplot(4, 1, 1)        
+        plt.fill_between(x_period1, y0_period1, Y_period1_Team1_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 2)
+        plt.fill_between(x_period2, y0_period2, Y_period2_Team1_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 3)
+        plt.fill_between(x_period3, y0_period3, Y_period3_Team1_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 4)
+        plt.fill_between(x_period4, y0_period4, Y_period4_Team1_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+
+
+    plt.subplot(4, 1, 1)        
+    tempX = np.array(shot_period1_Team1_re_t)
+    tempY = np.ones(len(shot_period1_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period1_Team1_re_t)
+    tempY = np.ones(len(shot_success_period1_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period1_start_re_t, period1_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team1_period1_offense')
+
+    plt.subplot(4, 1, 2)        
+    tempX = np.array(shot_period2_Team1_re_t)
+    tempY = np.ones(len(shot_period2_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period2_Team1_re_t)
+    tempY = np.ones(len(shot_success_period2_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period2_start_re_t, period2_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team1_period2_offense')
+
+    plt.subplot(4, 1, 3)        
+    tempX = np.array(shot_period3_Team1_re_t)
+    tempY = np.ones(len(shot_period3_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period3_Team1_re_t)
+    tempY = np.ones(len(shot_success_period3_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period2_start_re_t, period2_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team1_period3_offense')
+
+    plt.subplot(4, 1, 4)        
+    tempX = np.array(shot_period4_Team1_re_t)
+    tempY = np.ones(len(shot_period4_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period4_Team1_re_t)
+    tempY = np.ones(len(shot_success_period4_Team1_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period2_start_re_t, period2_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team1_period4_offense')
+
+    plt.savefig('Seq_Team1/Vis_tactical_pattern_Team1.png')
+    plt.show()
+    plt.close()
+
+
+
+
+
+
+
+    #--Team2--
+    fig = plt.figure(figsize=(16,4))
+    plt.subplots_adjust(hspace=1.5)
+
+
+    for k in range(K):
+        Y_period1_Team2_of = np.copy(y0_period1)
+        Y_period2_Team2_of = np.copy(y0_period2)
+        Y_period3_Team2_of = np.copy(y0_period3)
+        Y_period4_Team2_of = np.copy(y0_period4)
+
+        for i in range(N_Team2_of):
+            if labels_Team2[i] == k:
+                S = Seq_Team2_of[i]
+                start_t = S[0,0]
+                start_re_t = S[0,1]
+                end_re_t = S[len(S) - 1,1]
+                period = int(end_re_t - start_re_t)
+
+                if start_t < period1_end:
+                    for j in range(period):
+                        Y_period1_Team2_of[start_re_t + j] = 1.0
+                elif period2_start < start_t and start_t < period2_end:
+                    for j in range(period):
+                        Y_period2_Team2_of[start_re_t + j] = 1.0
+                elif period3_start < start_t and start_t < period3_end:
+                    for j in range(period):
+                        Y_period3_Team2_of[start_re_t + j] = 1.0
+                elif period4_start < start_t and start_t < period4_end:
+                    for j in range(period):
+                        Y_period4_Team2_of[start_re_t + j] = 1.0
+
+        plt.subplot(4, 1, 1)        
+        plt.fill_between(x_period1, y0_period1, Y_period1_Team2_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 2)
+        plt.fill_between(x_period2, y0_period2, Y_period2_Team2_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 3)
+        plt.fill_between(x_period3, y0_period3, Y_period3_Team2_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+        plt.subplot(4, 1, 4)
+        plt.fill_between(x_period4, y0_period4, Y_period4_Team2_of, \
+                         edgecolor = C[k], facecolor = C[k])
+
+
+    plt.subplot(4, 1, 1)        
+    tempX = np.array(shot_period1_Team2_re_t)
+    tempY = np.ones(len(shot_period1_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period1_Team2_re_t)
+    tempY = np.ones(len(shot_success_period1_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period1_start_re_t, period1_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team2_period1_offense')
+
+    plt.subplot(4, 1, 2)        
+    tempX = np.array(shot_period2_Team2_re_t)
+    tempY = np.ones(len(shot_period2_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period2_Team2_re_t)
+    tempY = np.ones(len(shot_success_period2_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period2_start_re_t, period2_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team2_period2_offense')
+
+    plt.subplot(4, 1, 3)        
+    tempX = np.array(shot_period3_Team2_re_t)
+    tempY = np.ones(len(shot_period3_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period3_Team2_re_t)
+    tempY = np.ones(len(shot_success_period3_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period3_start_re_t, period3_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team2_period3_offense')
+
+    plt.subplot(4, 1, 4)        
+    tempX = np.array(shot_period4_Team2_re_t)
+    tempY = np.ones(len(shot_period4_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=20, edgecolor = 'black', facecolor = 'black')
+    tempX = np.array(shot_success_period4_Team2_re_t)
+    tempY = np.ones(len(shot_success_period4_Team2_re_t)) * 0.5
+    plt.scatter(tempX, tempY, s=65, edgecolor = 'black', facecolor = 'none')
+    plt.axis([period4_start_re_t, period4_end_re_t, 0, 1])
+    plt.yticks([])
+    plt.title('Team2_period4_offense')
+
+    plt.savefig('Seq_Team2/Vis_tactical_pattern_Team2.png')
+    plt.show()
+    plt.close()
+
+
 
     print "ok"
     pdb.set_trace()   
@@ -693,5 +983,8 @@ make_BoF()
 
 Clustering()
 #BoFを入力にして攻撃パターンをクラスタリング
+
+Visualize_tactical_pattern()
+#タクティカルパターンの出力
 
 pdb.set_trace()
