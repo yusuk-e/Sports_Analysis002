@@ -102,6 +102,12 @@ shot_success_period4_Team1_re_t = []
 
 K = 5
 C = ['blue', 'red', 'green', 'grey', 'gold']
+#cmap = 'seismic'
+#cmap = 'coolwarm'
+#cmap = 'Reds'
+cmap = 'jet'
+
+kde_width = 0.25
 #-----------------
 
 
@@ -459,6 +465,7 @@ def Quantization():
     plt.imshow(im)
     plt.scatter(XY[team_id][:,0], XY[team_id][:,1], s = 40, color='blue', alpha=0.5)
     plt.axis([0, 600, 0, 330])
+    plt.tick_params(labelbottom='off',labelleft='off')
     plt.title(team_name, size=35, loc='left')
 
     bandwidth = 25
@@ -482,6 +489,7 @@ def Quantization():
     plt.imshow(im)
     plt.scatter(XY[team_id][:,0], XY[team_id][:,1], s = 40, color='red', alpha=0.5)
     plt.axis([0, 600, 0, 330])
+    plt.tick_params(labelbottom='off',labelleft='off')
     plt.title(team_name, size=35, loc='left')
     #bandwidth = estimate_bandwidth(XY[team_id], quantile=0.2, n_samples=500)
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
@@ -664,13 +672,13 @@ def make_BoF():
             Event = Sub_Seq[l]
             action_line = Event[:,4]
             action_posi = (np.where(action_line != action_dic[14])) or \
-                          np.where((action_line != action_dic[15]))#14:移動, 15:スクリーン
+                          np.where((action_line != action_dic[15]))#14:移動,15:スクリーン
             now_player_id = int(Event[action_posi[0][0]][3])
 
             Event = Sub_Seq[l+1]
             action_line = Event[:,4]
             action_posi = (np.where(action_line != action_dic[14])) or \
-                          np.where((action_line != action_dic[15]))#14:移動, 15:スクリーン
+                          np.where((action_line != action_dic[15]))#14:移動,15:スクリーン
             next_player_id = int(Event[action_posi[0][0]][3])
 
             M[now_player_id, next_player_id] += 1
@@ -721,7 +729,7 @@ def Clustering():
             E = pca.explained_variance_ratio_
             if np.sum(E) > PCA_threshold:
                 thereshold_dim = len(E)
-                print 'Team' + str(team_id)+ 'dim:%d' % thereshold_dim
+                print 'Team' + str(team_id)+ ' dim:%d' % thereshold_dim
                 break
     
         pca = PCA(n_components = thereshold_dim)
@@ -807,17 +815,20 @@ def Visualize_tactical_pattern():
                             Y_period4_of[start_re_t + j] = 1.0
                     
             plt.subplot(4, 1, 1)        
-            plt.fill_between(x_period1, y0_period1, Y_period1_of, edgecolor = C[k], facecolor = C[k])
+            plt.fill_between(x_period1, y0_period1, Y_period1_of, edgecolor = C[k], \
+                             facecolor = C[k])
 
             plt.subplot(4, 1, 2)
-            plt.fill_between(x_period2, y0_period2, Y_period2_of, edgecolor = C[k], facecolor = C[k])
+            plt.fill_between(x_period2, y0_period2, Y_period2_of, edgecolor = C[k], \
+                             facecolor = C[k])
 
             plt.subplot(4, 1, 3)
-            plt.fill_between(x_period3, y0_period3, Y_period3_of, edgecolor = C[k], facecolor = C[k])
+            plt.fill_between(x_period3, y0_period3, Y_period3_of, edgecolor = C[k], \
+                             facecolor = C[k])
 
             plt.subplot(4, 1, 4)
-            plt.fill_between(x_period4, y0_period4, Y_period4_of, edgecolor = C[k], facecolor = C[k])
-
+            plt.fill_between(x_period4, y0_period4, Y_period4_of, edgecolor = C[k], \
+                             facecolor = C[k])
 
         if team_id == 0:
             plt.subplot(4, 1, 1)
@@ -909,10 +920,133 @@ def Visualize_tactical_pattern():
             plt.yticks([])
             plt.title('Team' + str(team_id) + '_period4_offense')
             
-        plt.savefig('Seq_Team' + str(team_id) + '/Vis_tactical_pattern_Team' + str(team_id) + '.png')
+        plt.savefig('Seq_Team' + str(team_id) + '/Vis_tactical_pattern_Team' + \
+                    str(team_id) + '.png')
         plt.show()
         plt.close()
         
+
+def Cluster_analysis():
+#--kmeansで出力されたクラスタの平均など分析--
+    
+    for team_id in team_dic.itervalues():
+        labels = np.loadtxt('Seq_Team' + str(team_id) + '/labels_Team' + \
+                            str(team_id) + '.csv', delimiter=',')         
+        commands.getoutput('rm -r Seq_Team'+ str(team_id) + '/Seq_C*')
+        Seq_ids = BoF_seq_id[team_id]
+
+        for k in range(K):
+            commands.getoutput('mkdir Seq_Team' + str(team_id) + '/Seq_C' + str(k))
+            index = np.where(labels == k)[0]
+
+            #--位置情報の可視化--
+            flag = 0
+            for i in range(len(index)):
+                seq_id = Seq_ids[index[i]]
+                Sub_Seq = Seq[seq_id][team_id]
+                L = len(Sub_Seq)
+                
+                for l in range(L):
+                    Event = Sub_Seq[l]
+                    action_line = Event[:,4]
+                    action_posi = (np.where(action_line != action_dic[14])) or \
+                                  np.where((action_line != action_dic[15]))
+                    #14:移動,15:スクリーン
+                    
+                    x = Event[action_posi[0][0]][5]
+                    y = Event[action_posi[0][0]][6]
+                    xy = np.hstack([x,y])
+                    if flag == 0:
+                        D = xy
+                        flag = 1
+                    else:
+                        D = np.vstack([D,xy])
+
+            im = Image.open('court.png')
+            im = np.array(im)
+
+            X, Y = np.mgrid[0:600:1000j, 0:330:1000j]
+            positions = np.vstack([X.ravel(), Y.ravel()])
+            kernel = gaussian_kde(D.T,kde_width)
+            Z = np.reshape(kernel(positions).T, X.shape)
+            plt.imshow(np.rot90(Z), extent=[0, 600, 0, 330], cmap=cmap, alpha = 1.0)
+            plt.scatter(D[:,0],D[:,1], edgecolor='grey',facecolor='grey', s = 10, \
+                        alpha = 0.5)
+            plt.imshow(im, alpha = 0.35)
+            plt.axis([0, 600, 0, 330])
+            plt.tick_params(labelbottom='off',labelleft='off')
+            plt.title('Team' + str(team_id) + '_Cluster' + str(k) + '_location')
+            plt.savefig('Seq_Team' + str(team_id) + '/Cluster' + str(k) + \
+                        '_location_Team' + str(team_id) + '.png')
+            plt.close()
+
+
+        #全員分--
+        for k in range(K):
+            index = np.where(labels == k)[0]
+
+            #--位置情報の可視化--
+            flag = 0
+            for i in range(len(index)):
+                seq_id = Seq_ids[index[i]]
+                Sub_Seq = Seq[seq_id][team_id]
+                L = len(Sub_Seq)
+                
+                for l in range(L):
+                    Event = Sub_Seq[l]
+                    x = Event[:,5]
+                    y = Event[:,6]
+                    xy = np.vstack([x,y]).T
+                    if flag == 0:
+                        D = xy
+                        flag = 1
+                    else:
+                        D = np.vstack([D,xy])
+
+            im = Image.open('court.png')
+            im = np.array(im)
+
+            X, Y = np.mgrid[0:600:1000j, 0:330:1000j]
+            positions = np.vstack([X.ravel(), Y.ravel()])
+            kernel = gaussian_kde(D.T,kde_width)
+            Z = np.reshape(kernel(positions).T, X.shape)
+            plt.imshow(np.rot90(Z), extent=[0, 600, 0, 330], cmap=cmap, alpha = 1.0)
+            plt.scatter(D[:,0],D[:,1], edgecolor='grey',facecolor='grey', s = 10, \
+                        alpha = 0.5)
+            plt.imshow(im, alpha = 0.35)
+            plt.axis([0, 600, 0, 330])
+            plt.tick_params(labelbottom='off',labelleft='off')
+            plt.title('Team' + str(team_id) + '_Cluster' + str(k) + '_location')
+            plt.savefig('Seq_Team' + str(team_id) + '/Cluster' + str(k) + \
+                        '_location_Team' + str(team_id) + '_all.png')
+            plt.close()
+
+
+
+
+
+        #--プレイヤーグラフの可視化--
+        N_player = len(player1_dic)
+        M = np.zeros([N_player, N_player])
+        for i in range(len(index)):
+            n = index[i]
+            S = Seq_Team1_of[n]
+
+            Pass_Series = S[:,3]
+            for i in range(len(Pass_Series) - 1):
+                now_p_ind = Pass_Series[i]
+                next_p_ind = Pass_Series[i+1]
+
+                now_p = player1_dic[now_p_ind]
+                next_p = player1_dic[next_p_ind]
+                M[now_p, next_p] += 1
+
+
+        plt.pcolor(M, cmap=plt.cm.Blues)
+        plt.title('Team1_PlayerGraph_Cluster' + str(k))
+        plt.savefig('Seq_Team1/Player_Graph_Cluster' + str(k) + '_Team1.png')
+        plt.close()
+
 
     print "ok"
     pdb.set_trace()   
@@ -936,5 +1070,8 @@ Clustering()
 
 Visualize_tactical_pattern()
 #タクティカルパターンの出力
+
+Cluster_analysis()
+#kmeansで出力されたクラスタの平均など分析
 
 pdb.set_trace()
